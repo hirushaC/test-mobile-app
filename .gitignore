@@ -29,6 +29,31 @@ fastlane/*.ipa
 fastlane/*.apk
 fastlane/*.aab
 
+# Android Build Artifacts
+android/app/build/
+android/build/
+android/.gradle/
+android/*/build/
+*.apk
+*.aab
+
+# iOS Build Artifacts
+ios/build/
+ios/Pods/
+ios/.xcode.env.local
+*.ipa
+*.dSYM.zip
+
+# Firebase
+google-services.json
+GoogleService-Info.plist
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.staging
+
 # Metro
 .metro-health-check*
 

@@ -92,7 +92,8 @@ android {
         applicationId "com.testmobileapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        // Auto-increment versionCode using GITHUB_RUN_NUMBER in CI, or use 1 for local builds
+        versionCode (System.getenv("GITHUB_RUN_NUMBER") as Integer ?: 1)
         versionName "1.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
@@ -110,9 +111,13 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Use release signing if keystore properties are provided (via Fastlane in CI)
+            // Otherwise fall back to debug signing for local development
+            if (project.hasProperty('android.injected.signing.store.file')) {
+                signingConfig signingConfigs.debug // Will be overridden by injected properties
+            } else {
+                signingConfig signingConfigs.debug
+            }
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds

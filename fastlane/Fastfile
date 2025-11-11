@@ -10,20 +10,38 @@ def get_version_from_package_json
   package["version"]
 end
 
+# Helper method to validate required environment variables
+def validate_env_vars(required_vars)
+  missing_vars = required_vars.select { |var| ENV[var].nil? || ENV[var].empty? }
+
+  unless missing_vars.empty?
+    UI.user_error!("❌ Missing required environment variables: #{missing_vars.join(', ')}")
+  end
+
+  UI.success("✓ All required environment variables are set")
+end
+
 default_platform(:android)
 
 platform :android do
   desc "Build and release Android app to Google Play"
   lane :release do
+    # Validate required environment variables
+    required_vars = ["ANDROID_KEYSTORE_PASSWORD", "ANDROID_KEY_ALIAS", "ANDROID_KEY_PASSWORD", "GOOGLE_PLAY_SERVICE_KEY"]
+    required_vars << (ENV["ANDROID_KEYSTORE_BASE64"] ? "ANDROID_KEYSTORE_BASE64" : "ANDROID_KEYSTORE_PATH")
+    validate_env_vars(required_vars.compact)
+
     # Make gradlew executable
     sh("chmod +x ../android/gradlew") rescue nil
 
     # Decode keystore from base64 if provided
     if ENV["ANDROID_KEYSTORE_BASE64"]
+      UI.message("📦 Decoding keystore from base64...")
       keystore_path = "#{Dir.pwd}/release.keystore"
       File.open(keystore_path, 'wb') do |file|
         file.write(Base64.decode64(ENV["ANDROID_KEYSTORE_BASE64"]))
       end
+      UI.success("✓ Keystore decoded successfully")
     else
       keystore_path = ENV["ANDROID_KEYSTORE_PATH"]
     end
@@ -35,7 +53,7 @@ platform :android do
     gradle(
       task: "bundle",
       build_type: "Release",
-      project_dir: "android",
+      project_dir: "../android",
       properties: {
         "android.injected.signing.store.file" => keystore_path,
         "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
@@ -64,7 +82,7 @@ platform :android do
     gradle(
       task: "assemble",
       build_type: "Release",
-      project_dir: "android"
+      project_dir: "../android"
     )
   end
 end
@@ -72,11 +90,18 @@ end
 platform :ios do
   desc "Build and release iOS app to App Store"
   lane :release do
+    # Validate required environment variables
+    # Note: Match is optional (manual signing alternative), so not validating FASTLANE_MATCH_DEPLOY_KEY
+    if ENV["APP_STORE_CONNECT_API_KEY_ID"]
+      validate_env_vars(["APP_STORE_CONNECT_API_KEY_ID", "APP_STORE_CONNECT_ISSUER_ID", "APP_STORE_CONNECT_API_KEY"])
+    end
+
     # Setup code signing with Match
     setup_ci if ENV['CI']
 
     # Create App Store Connect API Key JSON file
     if ENV["APP_STORE_CONNECT_API_KEY_ID"] && ENV["APP_STORE_CONNECT_ISSUER_ID"]
+      UI.message("🔑 Creating App Store Connect API key file...")
       api_key = {
         key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
         issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
@@ -84,6 +109,7 @@ platform :ios do
         is_key_content_base64: false
       }
       File.write("#{Dir.pwd}/app_store_connect_api_key.json", api_key.to_json)
+      UI.success("✓ API key file created")
     end
 
     # Setup Match for code signing (if using Match)
@@ -100,18 +126,18 @@ platform :ios do
 
     # Increment build number
     increment_build_number(
-      xcodeproj: "ios/testmobileapp.xcodeproj",
+      xcodeproj: "../ios/testmobileapp.xcodeproj",
       build_number: ENV["GITHUB_RUN_NUMBER"] || "1"
     )
 
     # Install CocoaPods
     cocoapods(
-      podfile: "ios/Podfile"
+      podfile: "../ios/Podfile"
     )
 
     # Build the iOS app
     # Use workspace if it exists, otherwise use xcodeproj
-    workspace_path = "ios/testmobileapp.xcworkspace"
+    workspace_path = "../ios/testmobileapp.xcworkspace"
     if File.exist?(workspace_path)
       build_app(
         scheme: "testmobileapp",
@@ -126,7 +152,7 @@ platform :ios do
     else
       build_app(
         scheme: "testmobileapp",
-        project: "ios/testmobileapp.xcodeproj",
+        project: "../ios/testmobileapp.xcodeproj",
         export_method: "app-store"
       )
     end
@@ -148,10 +174,10 @@ platform :ios do
   lane :build do
     # Install CocoaPods
     cocoapods(
-      podfile: "ios/Podfile"
+      podfile: "../ios/Podfile"
     )
 
-    workspace_path = "ios/testmobileapp.xcworkspace"
+    workspace_path = "../ios/testmobileapp.xcworkspace"
     if File.exist?(workspace_path)
       build_app(
         scheme: "testmobileapp",
@@ -160,7 +186,7 @@ platform :ios do
     else
       build_app(
         scheme: "testmobileapp",
-        project: "ios/testmobileapp.xcodeproj"
+        project: "../ios/testmobileapp.xcodeproj"
       )
     end
   end

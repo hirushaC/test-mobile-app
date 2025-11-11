@@ -11,4 +11,47 @@
 -keep class com.swmansion.reanimated.** { *; }
 -keep class com.facebook.react.turbomodule.** { *; }
 
+# React Native
+-keep,allowobfuscation @interface com.facebook.proguard.annotations.DoNotStrip
+-keep,allowobfuscation @interface com.facebook.proguard.annotations.KeepGettersAndSetters
+-keep,allowobfuscation @interface com.facebook.common.internal.DoNotStrip
+-keep,allowobfuscation @interface com.facebook.jni.annotations.DoNotStrip
+
+-keep @com.facebook.proguard.annotations.DoNotStrip class *
+-keep @com.facebook.common.internal.DoNotStrip class *
+-keep @com.facebook.jni.annotations.DoNotStrip class *
+
+-keepclassmembers @com.facebook.proguard.annotations.KeepGettersAndSetters class * {
+  void set*(***);
+  *** get*();
+}
+
+-keepclassmembers class * {
+  @com.facebook.proguard.annotations.DoNotStrip *;
+  @com.facebook.common.internal.DoNotStrip *;
+  @com.facebook.jni.annotations.DoNotStrip *;
+}
+
+# Hermes
+-keep class com.facebook.jni.** { *; }
+-keep class com.facebook.hermes.unicode.** { *; }
+-keep class com.facebook.hermes.intl.** { *; }
+
+# Expo
+-keep class expo.modules.** { *; }
+-keep class com.facebook.react.** { *; }
+
+# OkHttp (used by React Native)
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn javax.annotation.**
+
+# JSR 305 annotations
+-dontwarn javax.annotation.**
+
+# Kotlin (if using any Kotlin libraries)
+-dontwarn kotlin.**
+-keep class kotlin.** { *; }
+-keep class kotlin.Metadata { *; }
+
 # Add any project specific keep options here:
