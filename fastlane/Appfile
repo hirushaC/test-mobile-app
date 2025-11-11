@@ -1,0 +1,16 @@
+# Appfile for Fastlane configuration
+
+# Android package name
+package_name(ENV["ANDROID_PACKAGE_NAME"] || "com.testmobileapp")
+
+# iOS bundle identifier
+app_identifier(ENV["IOS_BUNDLE_IDENTIFIER"] || "com.testmobileapp")
+
+# Apple ID for App Store Connect
+apple_id(ENV["APPLE_ID"])
+
+# iTunes Connect Team ID
+itc_team_id(ENV["APP_STORE_CONNECT_TEAM_ID"])
+
+# Developer Portal Team ID
+team_id(ENV["APPLE_TEAM_ID"])

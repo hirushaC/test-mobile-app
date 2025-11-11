@@ -2,6 +2,32 @@
   "expo": {
     "name": "test-mobile-app",
     "slug": "test-mobile-app",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#4630EB"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.testmobileapp",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#4630EB"
+      },
+      "package": "com.testmobileapp",
+      "versionCode": 1
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id-here"
+      }
+    }
   }
 }

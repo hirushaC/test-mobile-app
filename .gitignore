@@ -16,6 +16,18 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+*.keystore
+
+# Fastlane
+release.keystore
+app_store_connect_api_key.json
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/*.ipa
+fastlane/*.apk
+fastlane/*.aab
 
 # Metro
 .metro-health-check*

@@ -1,0 +1,152 @@
+# Fastfile for Expo React Native App
+
+default_platform(:android)
+
+platform :android do
+  desc "Build and release Android app to Google Play"
+  lane :release do
+    # Decode keystore from base64 if provided
+    if ENV["ANDROID_KEYSTORE_BASE64"]
+      require 'base64'
+      keystore_path = "#{Dir.pwd}/release.keystore"
+      File.write(keystore_path, Base64.decode64(ENV["ANDROID_KEYSTORE_BASE64"]))
+    else
+      keystore_path = ENV["ANDROID_KEYSTORE_PATH"]
+    end
+
+    # Get version from package.json
+    package = load_json(json_path: "../package.json")
+    version_name = package["version"]
+
+    # Build the Android app
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "android",
+      properties: {
+        "android.injected.signing.store.file" => keystore_path,
+        "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASSWORD"],
+        "android.injected.signing.key.alias" => ENV["ANDROID_KEY_ALIAS"],
+        "android.injected.signing.key.password" => ENV["ANDROID_KEY_PASSWORD"],
+      }
+    )
+
+    # Upload to Google Play Console
+    upload_to_play_store(
+      track: 'internal',
+      release_status: 'draft',
+      aab: 'android/app/build/outputs/bundle/release/app-release.aab',
+      json_key_data: ENV["GOOGLE_PLAY_SERVICE_KEY"],
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
+  desc "Build Android APK"
+  lane :build do
+    gradle(
+      task: "assemble",
+      build_type: "Release",
+      project_dir: "android"
+    )
+  end
+end
+
+platform :ios do
+  desc "Build and release iOS app to App Store"
+  lane :release do
+    # Setup code signing with Match
+    setup_ci if ENV['CI']
+
+    # Create App Store Connect API Key JSON file
+    if ENV["APP_STORE_CONNECT_API_KEY_ID"] && ENV["APP_STORE_CONNECT_ISSUER_ID"]
+      api_key = {
+        key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+        key: ENV["APP_STORE_CONNECT_API_KEY"] || "",
+        is_key_content_base64: false
+      }
+      File.write("#{Dir.pwd}/app_store_connect_api_key.json", api_key.to_json)
+    end
+
+    # Setup Match for code signing (if using Match)
+    if ENV["FASTLANE_MATCH_DEPLOY_KEY"]
+      match(
+        type: "appstore",
+        readonly: true,
+        app_identifier: "com.testmobileapp"
+      )
+    end
+
+    # Get version from package.json
+    package = load_json(json_path: "../package.json")
+    version_name = package["version"]
+
+    # Increment build number
+    increment_build_number(
+      xcodeproj: "ios/testmobileapp.xcodeproj",
+      build_number: ENV["GITHUB_RUN_NUMBER"] || "1"
+    )
+
+    # Install CocoaPods
+    cocoapods(
+      podfile: "ios/Podfile"
+    )
+
+    # Build the iOS app
+    # Use workspace if it exists, otherwise use xcodeproj
+    workspace_path = "ios/testmobileapp.xcworkspace"
+    if File.exist?(workspace_path)
+      build_app(
+        scheme: "testmobileapp",
+        workspace: workspace_path,
+        export_method: "app-store",
+        export_options: {
+          provisioningProfiles: {
+            "com.testmobileapp" => "match AppStore com.testmobileapp"
+          }
+        }
+      )
+    else
+      build_app(
+        scheme: "testmobileapp",
+        project: "ios/testmobileapp.xcodeproj",
+        export_method: "app-store"
+      )
+    end
+
+    # Upload to App Store Connect
+    if File.exist?("#{Dir.pwd}/app_store_connect_api_key.json")
+      upload_to_testflight(
+        api_key_path: "#{Dir.pwd}/app_store_connect_api_key.json",
+        skip_waiting_for_build_processing: true
+      )
+    else
+      upload_to_testflight(
+        skip_waiting_for_build_processing: true
+      )
+    end
+  end
+
+  desc "Build iOS IPA"
+  lane :build do
+    # Install CocoaPods
+    cocoapods(
+      podfile: "ios/Podfile"
+    )
+
+    workspace_path = "ios/testmobileapp.xcworkspace"
+    if File.exist?(workspace_path)
+      build_app(
+        scheme: "testmobileapp",
+        workspace: workspace_path
+      )
+    else
+      build_app(
+        scheme: "testmobileapp",
+        project: "ios/testmobileapp.xcodeproj"
+      )
+    end
+  end
+end
