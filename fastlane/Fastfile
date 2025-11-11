@@ -21,7 +21,9 @@ platform :android do
     # Decode keystore from base64 if provided
     if ENV["ANDROID_KEYSTORE_BASE64"]
       keystore_path = "#{Dir.pwd}/release.keystore"
-      File.write(keystore_path, Base64.decode64(ENV["ANDROID_KEYSTORE_BASE64"]))
+      File.open(keystore_path, 'wb') do |file|
+        file.write(Base64.decode64(ENV["ANDROID_KEYSTORE_BASE64"]))
+      end
     else
       keystore_path = ENV["ANDROID_KEYSTORE_PATH"]
     end
