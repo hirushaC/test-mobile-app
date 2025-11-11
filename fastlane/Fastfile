@@ -1,5 +1,15 @@
 # Fastfile for Expo React Native App
 
+require 'json'
+require 'base64'
+
+# Helper method to get version from package.json
+def get_version_from_package_json
+  package_json = File.read("../package.json")
+  package = JSON.parse(package_json)
+  package["version"]
+end
+
 default_platform(:android)
 
 platform :android do
@@ -7,7 +17,6 @@ platform :android do
   lane :release do
     # Decode keystore from base64 if provided
     if ENV["ANDROID_KEYSTORE_BASE64"]
-      require 'base64'
       keystore_path = "#{Dir.pwd}/release.keystore"
       File.write(keystore_path, Base64.decode64(ENV["ANDROID_KEYSTORE_BASE64"]))
     else
@@ -15,8 +24,7 @@ platform :android do
     end
 
     # Get version from package.json
-    package = load_json(json_path: "../package.json")
-    version_name = package["version"]
+    version_name = get_version_from_package_json
 
     # Build the Android app
     gradle(
@@ -80,8 +88,7 @@ platform :ios do
     end
 
     # Get version from package.json
-    package = load_json(json_path: "../package.json")
-    version_name = package["version"]
+    version_name = get_version_from_package_json
 
     # Increment build number
     increment_build_number(
