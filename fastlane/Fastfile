@@ -38,10 +38,17 @@ platform :android do
     if ENV["ANDROID_KEYSTORE_BASE64"]
       UI.message("📦 Decoding keystore from base64...")
       keystore_path = "#{Dir.pwd}/release.keystore"
+
+      # Strip whitespace and newlines from base64 string before decoding
+      base64_content = ENV["ANDROID_KEYSTORE_BASE64"].gsub(/\s+/, '')
+
+      # Decode and write in binary mode
       File.open(keystore_path, 'wb') do |file|
-        file.write(Base64.decode64(ENV["ANDROID_KEYSTORE_BASE64"]))
+        file.write(Base64.strict_decode64(base64_content))
       end
-      UI.success("✓ Keystore decoded successfully")
+
+      UI.success("✓ Keystore decoded successfully to #{keystore_path}")
+      UI.message("Keystore size: #{File.size(keystore_path)} bytes")
     else
       keystore_path = ENV["ANDROID_KEYSTORE_PATH"]
     end
