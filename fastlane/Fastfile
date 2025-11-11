@@ -15,6 +15,9 @@ default_platform(:android)
 platform :android do
   desc "Build and release Android app to Google Play"
   lane :release do
+    # Make gradlew executable
+    sh("chmod +x ../android/gradlew") rescue nil
+
     # Decode keystore from base64 if provided
     if ENV["ANDROID_KEYSTORE_BASE64"]
       keystore_path = "#{Dir.pwd}/release.keystore"
@@ -53,6 +56,9 @@ platform :android do
 
   desc "Build Android APK"
   lane :build do
+    # Make gradlew executable
+    sh("chmod +x ../android/gradlew") rescue nil
+
     gradle(
       task: "assemble",
       build_type: "Release",
