@@ -39,16 +39,40 @@ platform :android do
       UI.message("📦 Decoding keystore from base64...")
       keystore_path = "#{Dir.pwd}/release.keystore"
 
-      # Strip whitespace and newlines from base64 string before decoding
-      base64_content = ENV["ANDROID_KEYSTORE_BASE64"].gsub(/\s+/, '')
+      # Get the base64 content
+      base64_content = ENV["ANDROID_KEYSTORE_BASE64"]
 
-      # Decode and write in binary mode
-      File.open(keystore_path, 'wb') do |file|
-        file.write(Base64.strict_decode64(base64_content))
+      # Validate the base64 content is not empty
+      if base64_content.nil? || base64_content.strip.empty?
+        UI.user_error!("❌ ANDROID_KEYSTORE_BASE64 is empty or nil!")
       end
 
-      UI.success("✓ Keystore decoded successfully to #{keystore_path}")
-      UI.message("Keystore size: #{File.size(keystore_path)} bytes")
+      # Log the length before processing (for debugging)
+      UI.message("Base64 string length (raw): #{base64_content.length} characters")
+
+      # Strip whitespace and newlines from base64 string before decoding
+      base64_content = base64_content.gsub(/\s+/, '')
+      UI.message("Base64 string length (after strip): #{base64_content.length} characters")
+
+      # Decode and write in binary mode
+      begin
+        decoded_content = Base64.strict_decode64(base64_content)
+        UI.message("Decoded keystore size: #{decoded_content.bytesize} bytes")
+
+        # Validate the decoded content is large enough to be a real keystore
+        if decoded_content.bytesize < 100
+          UI.user_error!("❌ Decoded keystore is only #{decoded_content.bytesize} bytes! A valid keystore should be at least 2000 bytes. Your ANDROID_KEYSTORE_BASE64 environment variable appears to be corrupted or truncated.")
+        end
+
+        File.open(keystore_path, 'wb') do |file|
+          file.write(decoded_content)
+        end
+
+        UI.success("✓ Keystore decoded successfully to #{keystore_path}")
+        UI.message("Keystore file size: #{File.size(keystore_path)} bytes")
+      rescue ArgumentError => e
+        UI.user_error!("❌ Failed to decode base64 keystore: #{e.message}. Check that ANDROID_KEYSTORE_BASE64 contains valid base64 data.")
+      end
     else
       keystore_path = ENV["ANDROID_KEYSTORE_PATH"]
     end

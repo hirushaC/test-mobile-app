@@ -71,3 +71,4 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+FIX_ERROR.md
