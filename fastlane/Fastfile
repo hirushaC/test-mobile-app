@@ -27,8 +27,9 @@ platform :android do
   desc "Build and release Android app to Google Play"
   lane :release do
     # Validate required environment variables
-    required_vars = ["ANDROID_KEYSTORE_PASSWORD", "ANDROID_KEY_ALIAS", "ANDROID_KEY_PASSWORD", "GOOGLE_PLAY_SERVICE_KEY"]
+    required_vars = ["ANDROID_KEYSTORE_PASSWORD", "ANDROID_KEY_ALIAS", "ANDROID_KEY_PASSWORD"]
     required_vars << (ENV["ANDROID_KEYSTORE_BASE64"] ? "ANDROID_KEYSTORE_BASE64" : "ANDROID_KEYSTORE_PATH")
+    # GOOGLE_PLAY_SERVICE_KEY is optional - if not provided, will skip upload
     validate_env_vars(required_vars.compact)
 
     # Make gradlew executable
@@ -93,16 +94,22 @@ platform :android do
       }
     )
 
-    # Upload to Google Play Console
-    upload_to_play_store(
-      track: 'internal',
-      release_status: 'draft',
-      aab: 'android/app/build/outputs/bundle/release/app-release.aab',
-      json_key_data: ENV["GOOGLE_PLAY_SERVICE_KEY"],
-      skip_upload_metadata: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true
-    )
+    # Upload to Google Play Console (only if key is provided)
+    if ENV["GOOGLE_PLAY_SERVICE_KEY"] && !ENV["GOOGLE_PLAY_SERVICE_KEY"].strip.empty?
+      UI.message("📤 Uploading to Google Play Console...")
+      upload_to_play_store(
+        track: 'internal',
+        release_status: 'draft',
+        aab: 'android/app/build/outputs/bundle/release/app-release.aab',
+        json_key_data: ENV["GOOGLE_PLAY_SERVICE_KEY"],
+        skip_upload_metadata: true,
+        skip_upload_images: true,
+        skip_upload_screenshots: true
+      )
+    else
+      UI.important("⚠️  GOOGLE_PLAY_SERVICE_KEY not set - skipping Play Store upload")
+      UI.message("✓ AAB built successfully at: android/app/build/outputs/bundle/release/app-release.aab")
+    end
   end
 
   desc "Build Android APK"
